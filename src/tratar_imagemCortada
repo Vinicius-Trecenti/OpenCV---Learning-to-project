@@ -1,0 +1,56 @@
+import cv2 as cv
+import numpy as np
+
+# Carrega a imagem em escala de cinza
+image = cv.imread("img/lousa_recortada.jpg", 0)
+
+# Verifica se a imagem foi carregada
+if image is None:
+    print("Erro: Imagem não encontrada.")
+else:
+    # Aumenta o tamanho da imagem em 3x para melhor legibilidade
+    scale_factor = 1.50
+    width = int(image.shape[1] * scale_factor)
+    height = int(image.shape[0] * scale_factor)
+    enlarged_image = cv.resize(image, (width, height), interpolation=cv.INTER_CUBIC)
+    
+     # Ajusta o contraste da imagem para destacar o texto
+    contrast_image = cv.convertScaleAbs(enlarged_image, alpha=1.5, beta=0)
+
+    # Aplica o filtro Sobel para realçar bordas
+    sobelx = cv.Sobel(contrast_image, cv.CV_64F, 1, 0, ksize=3)  # Gradiente X
+    sobely = cv.Sobel(contrast_image, cv.CV_64F, 0, 1, ksize=3)  # Gradiente Y
+    sobel = cv.magnitude(sobelx, sobely).astype(np.uint8)  # Magnitude das bordas
+
+    # Aplica threshold fixo para binarizar a imagem baseada nas bordas
+    _, binary_image = cv.threshold(sobel, 50, 255, cv.THRESH_BINARY)
+
+    erosion_kernel = cv.getStructuringElement(cv.MORPH_RECT, (2, 2))
+    thinned_image = cv.erode(binary_image, erosion_kernel, iterations=1)
+    
+    # Remoção de ruídos com operações morfológicas
+    kernel = cv.getStructuringElement(cv.MORPH_RECT, (3, 3))
+    cleaned_image = cv.morphologyEx(binary_image, cv.MORPH_CLOSE, kernel)
+    
+       # Salva a imagem para envio à API
+    cv.imwrite("processed_image.png", cleaned_image)
+
+    # Configurações para chamada à API
+    api_url = 'https://api.ocr.space/parse/image'
+    with open('processed_image.png', 'rb') as image_file:
+        response = requests.post(
+            api_url,
+            files={'image': image_file},
+            data={'apikey': 'SUA_CHAVE_API', 'language': 'por'}
+        )
+    
+    # Verifica a resposta da API
+    if response.status_code == 200:
+        result = response.json()
+        if result.get("ParsedResults"):
+            text = result["ParsedResults"][0]["ParsedText"]
+            print("Texto detectado:", text)
+        else:
+            print("Erro: Nenhum texto detectado.")
+    else:
+        print("Erro na chamada da API:", response.status_code)

@@ -2,14 +2,14 @@ import cv2 as cv
 import numpy as np
 
 # Carrega a imagem em escala de cinza
-image = cv.imread("img/Lousa2.jpg", 0)
+image = cv.imread("img/lousa_with_teste.jpg", 0)
 
 # Verifica se a imagem foi carregada
 if image is None:
     print("Erro: Imagem não encontrada.")
 else:
     # Redimensiona a imagem para 40% do tamanho original
-    scale_percent = 50
+    scale_percent = 30
     width = int(image.shape[1] * scale_percent / 100)
     height = int(image.shape[0] * scale_percent / 100)
     dim = (width, height)
