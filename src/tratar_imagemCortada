@@ -1,5 +1,14 @@
 import cv2 as cv
 import numpy as np
+import requests
+from dotenv import load_dotenv
+import os
+
+# Carrega as variáveis do arquivo .env
+load_dotenv()
+
+# Acessa a variável de ambiente
+api_key = os.getenv("API_KEY")
 
 # Carrega a imagem em escala de cinza
 image = cv.imread("img/lousa_recortada.jpg", 0)
@@ -13,7 +22,7 @@ else:
     width = int(image.shape[1] * scale_factor)
     height = int(image.shape[0] * scale_factor)
     enlarged_image = cv.resize(image, (width, height), interpolation=cv.INTER_CUBIC)
-    
+
      # Ajusta o contraste da imagem para destacar o texto
     contrast_image = cv.convertScaleAbs(enlarged_image, alpha=1.5, beta=0)
 
@@ -24,33 +33,34 @@ else:
 
     # Aplica threshold fixo para binarizar a imagem baseada nas bordas
     _, binary_image = cv.threshold(sobel, 50, 255, cv.THRESH_BINARY)
-
     erosion_kernel = cv.getStructuringElement(cv.MORPH_RECT, (2, 2))
     thinned_image = cv.erode(binary_image, erosion_kernel, iterations=1)
-    
-    # Remoção de ruídos com operações morfológicas
-    kernel = cv.getStructuringElement(cv.MORPH_RECT, (3, 3))
+
+    # Kernel menor para a operação morfológica
+    kernel = cv.getStructuringElement(cv.MORPH_RECT, (2, 2))  # Reduza o tamanho do kernel
     cleaned_image = cv.morphologyEx(binary_image, cv.MORPH_CLOSE, kernel)
-    
+
        # Salva a imagem para envio à API
     cv.imwrite("processed_image.png", cleaned_image)
+    cv.imshow("Focused Text", cleaned_image)
+    cv.waitKey(0)
 
-    # Configurações para chamada à API
-    api_url = 'https://api.ocr.space/parse/image'
-    with open('processed_image.png', 'rb') as image_file:
-        response = requests.post(
-            api_url,
-            files={'image': image_file},
-            data={'apikey': 'SUA_CHAVE_API', 'language': 'por'}
-        )
-    
-    # Verifica a resposta da API
-    if response.status_code == 200:
-        result = response.json()
-        if result.get("ParsedResults"):
-            text = result["ParsedResults"][0]["ParsedText"]
-            print("Texto detectado:", text)
-        else:
-            print("Erro: Nenhum texto detectado.")
-    else:
-        print("Erro na chamada da API:", response.status_code)
+    # # Configurações para chamada à API
+    # api_url = 'https://api.ocr.space/parse/image'
+    # with open('processed_image.png', 'rb') as image_file:
+    #     response = requests.post(
+    #         api_url,
+    #         files={'image': image_file},
+    #         data={'apikey': '{api_key}', 'language': 'por'}
+    #     )
+
+    # # Verifica a resposta da API
+    # if response.status_code == 200:
+    #     result = response.json()
+    #     if result.get("ParsedResults"):
+    #         text = result["ParsedResults"][0]["ParsedText"]
+    #         print("Texto detectado:", text)
+    #     else:
+    #         print("Erro: Nenhum texto detectado.")
+    # else:
+    #     print("Erro na chamada da API:", response.status_code)
